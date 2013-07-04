@@ -15,19 +15,23 @@
 			<storageModule moduleId="cdtBuildSystem" version="4.0.0">
 				<configuration artifactName="${ProjName}" buildArtefactType="org.eclipse.cdt.build.core.buildArtefactType.exe" buildProperties="org.eclipse.cdt.build.core.buildArtefactType=org.eclipse.cdt.build.core.buildArtefactType.exe" cleanCommand="rm -rf" description="" id="intel.linux.x86_64.exe.rel.1041753582_13.1.0" name="Release" parent="intel.linux.x86_64.exe.rel_13.1.0">
 					<folderInfo id="intel.linux.x86_64.exe.rel.1041753582._13.1.0" name="/" resourcePath="">
-						<toolChain id="intel.toolchain.linux.x86_64.exe.rel.307753273_13.1.0" name="Intel Toolchain for Executable on Intel(R) 64" superClass="intel.toolchain.linux.x86_64.exe.rel_13.1.0">
+						<toolChain id="intel.toolchain.linux.x86_64.exe.rel.307753273_13.1.0" name="Intel Toolchain for Executable on Intel(R) 64" nonInternalBuilderId="intel.builder.linux.x86_64.exe.rel_13.1.0" resourceTypeBasedDiscovery="true" superClass="intel.toolchain.linux.x86_64.exe.rel_13.1.0">
 							<targetPlatform archList="x86_64" binaryParser="org.eclipse.cdt.core.ELF" id="intel.platform.linux.x86_64.exe.rel_13.1.0.703440938" name="Platform.Executable.Release" osList="linux" superClass="intel.platform.linux.x86_64.exe.rel_13.1.0"/>
-							<builder buildPath="${workspace_loc:/CryptoCilk}/Release" id="intel.builder.linux.x86_64.exe.rel.547537089_13.1.0" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="Intel Builder" superClass="intel.builder.linux.x86_64.exe.rel_13.1.0"/>
+							<builder buildPath="${workspace_loc:/CryptoCilk}/Release" id="intel.builder.linux.x86_64.exe.rel.748355357_13.1.0" keepEnvironmentInBuildfile="false" name="Intel Builder" superClass="intel.builder.linux.x86_64.exe.rel_13.1.0"/>
 							<tool id="intel.cpp.compilestep.linux.x86_64.exe.rel.291954519_13.1.0" name="Intel Intel(R) 64 C++ Compiler " superClass="intel.cpp.compilestep.linux.x86_64.exe.rel_13.1.0">
 								<inputType id="intel.cpp.compilestep.input.723155231" superClass="intel.cpp.compilestep.input"/>
 							</tool>
-							<tool id="intel.c.compilestep.linux.x86_64.exe.rel.1885589908_13.1.0" name="Intel Intel(R) 64 C Compiler" superClass="intel.c.compilestep.linux.x86_64.exe.rel_13.1.0">
+							<tool command="icc" id="intel.c.compilestep.linux.x86_64.exe.rel.1885589908_13.1.0" name="Intel Intel(R) 64 C Compiler" superClass="intel.c.compilestep.linux.x86_64.exe.rel_13.1.0">
+								<option id="intel.compilestep.preprocessor.includedirectories.1387236695" name="Additional Include Directories (-I)" superClass="intel.compilestep.preprocessor.includedirectories" valueType="includePath">
+									<listOptionValue builtIn="false" value="/usr/include/postgresql"/>
+								</option>
 								<inputType id="intel.c.compilestep.input.1990255460" superClass="intel.c.compilestep.input"/>
 							</tool>
 							<tool id="intel.c.linkstep.linux.x86_64.exe.rel.1782278884_13.1.0" name="Intel Intel(R) 64 C Linker" superClass="intel.c.linkstep.linux.x86_64.exe.rel_13.1.0"/>
 							<tool id="intel.cpp.linkstep.linux.x86_64.exe.rel.1344355441_13.1.0" name="Intel Intel(R) 64 C++ Linker" superClass="intel.cpp.linkstep.linux.x86_64.exe.rel_13.1.0">
-								<option id="intel.linkstep.libname.29240278" superClass="intel.linkstep.libname" valueType="libs">
+								<option id="intel.linkstep.libname.29240278" name="Additional Libraries (-l)" superClass="intel.linkstep.libname" valueType="libs">
 									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="crypto"/>
+									<listOptionValue builtIn="false" srcPrefixMapping="" srcRootPath="" value="pq"/>
 								</option>
 								<inputType id="intel.linkstep.input.683918804" superClass="intel.linkstep.input">
 									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
@@ -54,11 +58,20 @@
 					<folderInfo id="intel.linux.x86_64.exe.dbg.1860990942._13.1.0" name="/" resourcePath="">
 						<toolChain id="intel.toolchain.linux.x86_64.exe.dbg.362874789_13.1.0" name="Intel Toolchain for Executable on Intel(R) 64" superClass="intel.toolchain.linux.x86_64.exe.dbg_13.1.0">
 							<targetPlatform archList="x86_64" binaryParser="org.eclipse.cdt.core.ELF" id="intel.platform.linux.x86_64.exe.dbg_13.1.0.853852165" name="Platform.Executable.Debug" osList="linux" superClass="intel.platform.linux.x86_64.exe.dbg_13.1.0"/>
-							<builder buildPath="${workspace_loc:/CryptoCilk}/Debug" id="intel.builder.linux.x86_64.exe.dbg.503511591_13.1.0" managedBuildOn="true" name="Intel Builder.Debug" superClass="intel.builder.linux.x86_64.exe.dbg_13.1.0"/>
-							<tool id="intel.cpp.compilestep.linux.x86_64.exe.dbg.824830147_13.1.0" name="Intel Intel(R) 64 C++ Compiler " superClass="intel.cpp.compilestep.linux.x86_64.exe.dbg_13.1.0"/>
-							<tool id="intel.c.compilestep.linux.x86_64.exe.dbg.2039677543_13.1.0" name="Intel Intel(R) 64 C Compiler" superClass="intel.c.compilestep.linux.x86_64.exe.dbg_13.1.0"/>
+							<builder buildPath="${workspace_loc:/CryptoCilk}/Debug" id="intel.builder.linux.x86_64.exe.dbg.503511591_13.1.0" keepEnvironmentInBuildfile="false" managedBuildOn="true" name="Intel Builder" superClass="intel.builder.linux.x86_64.exe.dbg_13.1.0"/>
+							<tool id="intel.cpp.compilestep.linux.x86_64.exe.dbg.824830147_13.1.0" name="Intel Intel(R) 64 C++ Compiler " superClass="intel.cpp.compilestep.linux.x86_64.exe.dbg_13.1.0">
+								<inputType id="intel.cpp.compilestep.input.807742156" superClass="intel.cpp.compilestep.input"/>
+							</tool>
+							<tool id="intel.c.compilestep.linux.x86_64.exe.dbg.2039677543_13.1.0" name="Intel Intel(R) 64 C Compiler" superClass="intel.c.compilestep.linux.x86_64.exe.dbg_13.1.0">
+								<inputType id="intel.c.compilestep.input.1600791641" superClass="intel.c.compilestep.input"/>
+							</tool>
 							<tool id="intel.c.linkstep.linux.x86_64.exe.dbg.1358665056_13.1.0" name="Intel Intel(R) 64 C Linker" superClass="intel.c.linkstep.linux.x86_64.exe.dbg_13.1.0"/>
-							<tool id="intel.cpp.linkstep.linux.x86_64.exe.dbg.1542464303_13.1.0" name="Intel Intel(R) 64 C++ Linker" superClass="intel.cpp.linkstep.linux.x86_64.exe.dbg_13.1.0"/>
+							<tool id="intel.cpp.linkstep.linux.x86_64.exe.dbg.1542464303_13.1.0" name="Intel Intel(R) 64 C++ Linker" superClass="intel.cpp.linkstep.linux.x86_64.exe.dbg_13.1.0">
+								<inputType id="intel.linkstep.input.1007115740" superClass="intel.linkstep.input">
+									<additionalInput kind="additionalinputdependency" paths="$(USER_OBJS)"/>
+									<additionalInput kind="additionalinput" paths="$(LIBS)"/>
+								</inputType>
+							</tool>
 						</toolChain>
 					</folderInfo>
 				</configuration>
@@ -70,13 +83,54 @@
 		<project id="CryptoCilk.intel.linux.executable.2.1969634949" name="Executable" projectType="intel.linux.executable.2"/>
 	</storageModule>
 	<storageModule moduleId="org.eclipse.cdt.core.LanguageSettingsProviders"/>
+	<storageModule moduleId="refreshScope" versionNumber="2">
+		<configuration configurationName="Release">
+			<resource resourceType="PROJECT" workspacePath="/CryptoCilk"/>
+		</configuration>
+		<configuration configurationName="Debug">
+			<resource resourceType="PROJECT" workspacePath="/CryptoCilk"/>
+		</configuration>
+	</storageModule>
 	<storageModule moduleId="scannerConfiguration">
 		<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId=""/>
 		<scannerConfigBuildInfo instanceId="intel.linux.x86_64.exe.rel.1041753582_13.1.0;intel.linux.x86_64.exe.rel.1041753582._13.1.0;intel.c.compilestep.linux.x86_64.exe.rel.1885589908_13.1.0;intel.c.compilestep.input.1990255460">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.intel.compiler.cdt.managedbuilder.ui.ICCManagedMakePerProjectProfile"/>
+			<profile id="com.intel.compiler.cdt.managedbuilder.ui.ICCManagedMakePerProjectProfile">
+				<buildOutputProvider>
+					<openAction enabled="true" filePath=""/>
+					<parser enabled="true"/>
+				</buildOutputProvider>
+				<scannerInfoProvider id="specsFile">
+					<runAction arguments="-E -P -v -dM ${plugin_state_location}/${specs_file}" command="icpc" useDefault="true"/>
+					<parser enabled="true"/>
+				</scannerInfoProvider>
+			</profile>
+		</scannerConfigBuildInfo>
+		<scannerConfigBuildInfo instanceId="intel.linux.x86_64.exe.rel.1041753582_13.1.0">
+			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.intel.compiler.cdt.managedbuilder.ui.ICCManagedMakePerProjectProfile"/>
+			<profile id="com.intel.compiler.cdt.managedbuilder.ui.ICCManagedMakePerProjectProfile">
+				<buildOutputProvider>
+					<openAction enabled="true" filePath=""/>
+					<parser enabled="true"/>
+				</buildOutputProvider>
+				<scannerInfoProvider id="specsFile">
+					<runAction arguments="-E -P -v -dM ${plugin_state_location}/${specs_file}" command="icpc" useDefault="true"/>
+					<parser enabled="true"/>
+				</scannerInfoProvider>
+			</profile>
 		</scannerConfigBuildInfo>
 		<scannerConfigBuildInfo instanceId="intel.linux.x86_64.exe.rel.1041753582_13.1.0;intel.linux.x86_64.exe.rel.1041753582._13.1.0;intel.cpp.compilestep.linux.x86_64.exe.rel.291954519_13.1.0;intel.cpp.compilestep.input.723155231">
 			<autodiscovery enabled="true" problemReportingEnabled="true" selectedProfileId="com.intel.compiler.cdt.managedbuilder.ui.ICCManagedMakePerProjectProfile"/>
+			<profile id="com.intel.compiler.cdt.managedbuilder.ui.ICCManagedMakePerProjectProfile">
+				<buildOutputProvider>
+					<openAction enabled="true" filePath=""/>
+					<parser enabled="true"/>
+				</buildOutputProvider>
+				<scannerInfoProvider id="specsFile">
+					<runAction arguments="-E -P -v -dM ${plugin_state_location}/${specs_file}" command="icpc" useDefault="true"/>
+					<parser enabled="true"/>
+				</scannerInfoProvider>
+			</profile>
 		</scannerConfigBuildInfo>
 	</storageModule>
 </cproject>

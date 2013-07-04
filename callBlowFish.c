@@ -13,6 +13,7 @@
 #include <sys/stat.h>
 #include <sys/types.h>
 #include <cilk/cilk.h>
+#include "libpq-fe.h"
 
 
 
@@ -23,6 +24,11 @@ unsigned char key[16];
 unsigned char iv[8];
 
 double startTime,endTime;
+
+static void exit_nicely(PGconn *conn){
+	PQfinish(conn);
+	exit(1);
+}
 
 int decrypt (int infd, int outfd) {
 
@@ -143,56 +149,69 @@ int main (int argc, char *argv[]) {
 	iv[6] = 47;
 	iv[7] = 70;
 
-	char* files[] = {"/media/d267fe98-4fc0-4484-891d-8263c9849c18/tests/debian0.iso",
-			"/media/d267fe98-4fc0-4484-891d-8263c9849c18/tests/debian1.iso",
-			"/media/d267fe98-4fc0-4484-891d-8263c9849c18/tests/debian2.iso",
-			"/media/d267fe98-4fc0-4484-891d-8263c9849c18/tests/debian3.iso",
-			"/media/d267fe98-4fc0-4484-891d-8263c9849c18/tests/debian4.iso",
-			"/media/d267fe98-4fc0-4484-891d-8263c9849c18/tests/debian5.iso"
-			};
 
-	int i = 0;
-	for(i=0; i<4; i++){
-		printf("Enc: %d\n", i);
-		encFile(files[i], key, iv);
+	int   i=0,j=0;
+
+	PGconn    *conn;
+	PGresult   *res;
+
+	int infd = -1;
+	int inFiles[6];
+	int flags1 = 0;
+	mode_t mode;
+
+
+	/* make a connection to the database */
+	conn = PQconnectdb("hostaddr = '127.0.0.1' port = '5432' dbname = 'CryptoCilk' user = 'jinwork' password = 'ignition' connect_timeout = '10' options='-c search_path=crypto'");
+
+
+	/* check to see that the backend connection was successfully made */
+	if (PQstatus(conn) == CONNECTION_BAD)
+	{
+		//fprintf(stderr, "Connection to database '%s' failed.\n", dbName);
+		fprintf(stderr, "%s", PQerrorMessage(conn));
+		exit_nicely(conn);
+	}
+
+	res = PQexec(conn, "SELECT fqueue_id, fqueue_name FROM crypto.file_queue_t WHERE FQUEUE_TIME IS NULL");
+
+
+	/* first, print out the attribute names */
+	int nFields = PQnfields(res);
+
+	char * arr  = (char *) _mm_malloc(nFields * sizeof(char), 64);
+
+
+	cilk_for (i = 0; i < PQntuples(res); i++){
+
+		arr =PQgetvalue(res, i, 1);
+		if ((infd = open (arr, flags1, mode)) == -1) printf("IO Error: %s\n", arr);
+		printf("Starting encryption: %d\n", i);
+		encFile(arr, infd, key, iv);
 
 	}
 
 
-//http://stackoverflow.com/questions/5248915/execution-time-of-c-program
+	PQclear(res);
+	PQfinish(conn);
 
+	end = clock();
+	total_time = ((long double) (end - start)) / (long double) CLOCKS_PER_SEC;
 
-	end = clock();//time count stops
-	total_time = ((long double) (end - start)) / (long double) CLOCKS_PER_SEC;//calulate total time
-	//printf("\nTime taken: %f", total_time);
-
-	printf("start time: %.16g\n",(double) start);
-	printf("end time: %Lf\n", (long double) end);
-	//printf("CLOCKS_PER_SEC %2.16e\n", (double) CLOCKS_PER_SEC);
-
-
-	//if(total_time<100000000) printf("TOTAL TIME %.5f seconds\n", (total_time/10));
-	//else printf("TOTAL TIME (/10) %f seconds\n", (total_time/10));
-
-	printf("TOTAL TIME  %Lf\n", (total_time));
-
-
-	printf("Time taken: %.2fs\n", (double)(clock() - start)/CLOCKS_PER_SEC);
-
+	printf("CLOCK() Start time: %.5f\n",(double) start);
+	printf("CLOCK() End time: %.5Lf\n", (long double) end);
+	printf("CLOCK() Total Time  %.5Lf\n", (total_time));
 
 	gettimeofday(&tv2, NULL);
 
-
-	printf ("Total time = %f seconds\n",
-	             (double) (tv2.tv_usec - tv1.tv_usec)/1000000 +
-	             (double) (tv2.tv_sec - tv1.tv_sec));
-
+	printf ("[gettimeofday()] Total time = %f seconds\n", (double) (tv2.tv_usec - tv1.tv_usec)/1000000 + (double) (tv2.tv_sec - tv1.tv_sec));
+	_mm_free(arr);
 
 	return 0;
 }
 
-int encFile(const char *filename, unsigned char *key[16], unsigned char *iv[8]){
-	int flags1 = 0, flags2 = 0, outfd, infd, decfd;
+int encFile(const char *filename, int infd, unsigned char *key[16], unsigned char *iv[8]){
+	int flags1 = 0, flags2 = 0, outfd, decfd;
 	mode_t mode;
 	char choice, temp;
 	int done = 0, n, olen;
@@ -214,7 +233,6 @@ int encFile(const char *filename, unsigned char *key[16], unsigned char *iv[8]){
 
 	snprintf(encFilename, 200, "%s%s", filename, encExt);
 
-	if ((infd = open (filename, flags1, mode)) == -1) printf("IO Error: %s\n",filename);
 	if ((outfd = open (encFilename, flags2, mode)) == -1) perror ("open output file error");
 
 	encrypt (infd, outfd);
@@ -223,4 +241,7 @@ int encFile(const char *filename, unsigned char *key[16], unsigned char *iv[8]){
 	close (outfd);
 	return 0;
 }
+
+
+
 
