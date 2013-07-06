@@ -2,7 +2,7 @@
  * callBlowFish.c
  *
  *  Created on: Jul 2, 2013
- *      Author: root
+ *      Author: Jose Damico (jd.comment@gmail.com)
  */
 
 
@@ -24,6 +24,7 @@ unsigned char key[16];
 unsigned char iv[8];
 
 double startTime,endTime;
+int intP = -1;
 
 static void exit_nicely(PGconn *conn){
 	PQfinish(conn);
@@ -105,15 +106,20 @@ int encrypt (int infd, int outfd) {
 			return 0;
 		}
 		olen += tlen;
-		if ((n = write (outfd, outbuf, olen)) == -1)
-			perror ("write error");
+		if ((n = write (outfd, outbuf, olen)) == -1) perror ("write error");
 	}
 	EVP_CIPHER_CTX_cleanup (&ctx);
+	close (infd);
+	close (outfd);
 	return 1;
 }
 
 int main (int argc, char *argv[]) {
 
+	char *p = "n";
+
+	if(argc > 1) p = argv[1]; 
+	intP = strcmp(p, "y");
 
 	struct timeval  tv1, tv2;
 	gettimeofday(&tv1, NULL);
@@ -161,11 +167,9 @@ int main (int argc, char *argv[]) {
 	mode_t mode;
 
 
-	/* make a connection to the database */
 	conn = PQconnectdb("hostaddr = '127.0.0.1' port = '5432' dbname = 'CryptoCilk' user = 'jinwork' password = 'ignition' connect_timeout = '10' options='-c search_path=crypto'");
 
 
-	/* check to see that the backend connection was successfully made */
 	if (PQstatus(conn) == CONNECTION_BAD)
 	{
 		//fprintf(stderr, "Connection to database '%s' failed.\n", dbName);
@@ -181,13 +185,20 @@ int main (int argc, char *argv[]) {
 
 	char * arr  = (char *) _mm_malloc(nFields * sizeof(char), 64);
 
+	if(intP == 0){
 
-	cilk_for (i = 0; i < PQntuples(res); i++){
+		cilk_for (i = 0; i < PQntuples(res); i++){
+			arr =PQgetvalue(res, i, 1);
+			printf("Starting encryption: %d\n", i);
+			encFile(arr, key, iv);
+		}
+	}else{
 
-		arr =PQgetvalue(res, i, 1);
-		if ((infd = open (arr, flags1, mode)) == -1) printf("IO Error: %s\n", arr);
-		printf("Starting encryption: %d\n", i);
-		encFile(arr, infd, key, iv);
+		for (i = 0; i < PQntuples(res); i++){
+			arr =PQgetvalue(res, i, 1);
+			printf("Starting encryption: %d\n", i);
+			encFile(arr, key, iv);
+		}
 
 	}
 
@@ -204,14 +215,28 @@ int main (int argc, char *argv[]) {
 
 	gettimeofday(&tv2, NULL);
 
-	printf ("[gettimeofday()] Total time = %f seconds\n", (double) (tv2.tv_usec - tv1.tv_usec)/1000000 + (double) (tv2.tv_sec - tv1.tv_sec));
-	_mm_free(arr);
+	double gTime = (double) (tv2.tv_usec - tv1.tv_usec)/1000000 + (double) (tv2.tv_sec - tv1.tv_sec);
 
+	printf ("[gettimeofday()] Total time = %f seconds\n", gTime);
+
+
+	conn = PQconnectdb("hostaddr = '127.0.0.1' port = '5432' dbname = 'CryptoCilk' user = 'jinwork' password = 'ignition' connect_timeout = '10' options='-c search_path=crypto'");
+	if (PQstatus(conn) == CONNECTION_BAD){
+		fprintf(stderr, "%s", PQerrorMessage(conn));
+		exit_nicely(conn);
+	}
+	char preSql[100];
+	sprintf (preSql, "INSERT INTO crypto.proc_log_t (proc_log_time, proc_log_paral)VALUES(%.5f, %d)",gTime, intP);
+	res = PQexec(conn, preSql);
+	PQclear(res);
+	PQfinish(conn);
+
+	//_mm_free(arr);
 	return 0;
 }
 
-int encFile(const char *filename, int infd, unsigned char *key[16], unsigned char *iv[8]){
-	int flags1 = 0, flags2 = 0, outfd, decfd;
+int encFile(const char *filename, unsigned char *key[16], unsigned char *iv[8]){
+	int flags1 = 0, flags2 = 0, infd, outfd, decfd;
 	mode_t mode;
 	char choice, temp;
 	int done = 0, n, olen;
@@ -233,12 +258,14 @@ int encFile(const char *filename, int infd, unsigned char *key[16], unsigned cha
 
 	snprintf(encFilename, 200, "%s%s", filename, encExt);
 
+	if( remove(encFilename) != 0 ) perror( "Error deleting file" );
+	if ((infd = open (filename, flags1, mode)) == -1) printf("IO Error: %s\n", filename);
 	if ((outfd = open (encFilename, flags2, mode)) == -1) perror ("open output file error");
 
-	encrypt (infd, outfd);
+	if(intP == 0) cilk_spawn encrypt (infd, outfd);
+	else encrypt (infd, outfd);
 
-	close (infd);
-	close (outfd);
+
 	return 0;
 }
 
