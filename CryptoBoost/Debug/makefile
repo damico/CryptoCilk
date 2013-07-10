@@ -8,7 +8,6 @@ RM := rm -rf
 
 # All of the sources participating in the build are defined here
 -include sources.mk
--include src/subdir.mk
 -include subdir.mk
 -include objects.mk
 
@@ -38,19 +37,19 @@ endif
 # Add inputs and outputs from these tool invocations to the build variables 
 
 # All Target
-all: CryptoCilk
+all: CryptoBoost
 
 # Tool invocations
-CryptoCilk: $(OBJS) $(USER_OBJS)
+CryptoBoost: $(OBJS) $(USER_OBJS)
 	@echo 'Building target: $@'
 	@echo 'Invoking: Intel Intel(R) 64 C++ Linker'
-	icpc  -o "CryptoCilk" $(OBJS) $(USER_OBJS) $(LIBS)
+	icpc  -o "CryptoBoost" $(OBJS) $(USER_OBJS) $(LIBS)
 	@echo 'Finished building target: $@'
 	@echo ' '
 
 # Other Targets
 clean:
-	-$(RM) $(OBJS)$(C++_DEPS)$(C_DEPS)$(CC_DEPS)$(CPP_DEPS)$(EXECUTABLES)$(CXX_DEPS)$(C_UPPER_DEPS) CryptoCilk
+	-$(RM) $(OBJS)$(C++_DEPS)$(C_DEPS)$(CC_DEPS)$(CPP_DEPS)$(EXECUTABLES)$(CXX_DEPS)$(C_UPPER_DEPS) CryptoBoost
 	-@echo ' '
 
 .PHONY: all clean dependents
