@@ -14,11 +14,11 @@
 #include <sys/types.h>
 #include <cilk/cilk.h>
 #include "libpq-fe.h"
+#include <unistd.h>
 
 
-
-#define IP_SIZE 1024
-#define OP_SIZE 1032
+#define IP_SIZE 512
+#define OP_SIZE 1024*1024
 
 unsigned char key[16];
 unsigned char iv[8];
@@ -33,82 +33,85 @@ static void exit_nicely(PGconn *conn){
 
 int decrypt (int infd, int outfd) {
 
-	unsigned char outbuf[IP_SIZE];
-	int olen, tlen, n;
-	char inbuff[OP_SIZE];
-	EVP_CIPHER_CTX ctx;
-	EVP_CIPHER_CTX_init (&ctx);
-	EVP_DecryptInit (&ctx, EVP_bf_cbc (), key, iv);
+	unsigned char           *inbuff, *outbuf;
 
-	for (;;)
-	{
-		bzero (&inbuff, OP_SIZE);
-		if ((n = read (infd, inbuff, OP_SIZE)) == -1)
-		{
-			perror ("read error");
+	int             olen=0, tlen=0, n=0;
+	EVP_CIPHER_CTX  ctx;
+	EVP_CIPHER_CTX_init(&ctx);
+	EVP_EncryptInit(&ctx, EVP_bf_cbc(), key, iv);
+
+	outbuf = (unsigned char *) malloc(sizeof(unsigned char) * OP_SIZE);
+	inbuff = (unsigned char *) malloc(sizeof(unsigned char) * IP_SIZE);
+
+	for (;;) {
+		memset(inbuff, 0, IP_SIZE);
+
+		if ((n = read(infd, inbuff, IP_SIZE)) == -1) {
+			perror("read error");
 			break;
-		}
-		else if (n == 0)
+		} else if (n == 0)
 			break;
 
-		bzero (&outbuf, IP_SIZE);
-
-		if (EVP_DecryptUpdate (&ctx, outbuf, &olen, inbuff, n) != 1)
-		{
-			printf ("error in decrypt update\n");
+		if (EVP_EncryptUpdate(&ctx, outbuf, &olen, inbuff, n) != 1) {
+			printf("error in encrypt update\n");
 			return 0;
 		}
 
-		if (EVP_DecryptFinal (&ctx, outbuf + olen, &tlen) != 1)
-		{
-			printf ("error in decrypt final\n");
-			return 0;
-		}
-		olen += tlen;
-		if ((n = write (outfd, outbuf, olen)) == -1)
-			perror ("write error");
+		if ((n = write(outfd, outbuf, olen)) == -1)
+			perror("write error");
+	}
+	tlen=0;
+	if (EVP_EncryptFinal(&ctx, outbuf + olen, &tlen) != 1) {
+		printf("error in encrypt final\n");
+		return 0;
 	}
 
-	EVP_CIPHER_CTX_cleanup (&ctx);
+	if ((n = write(outfd, outbuf+olen, tlen)) == -1)
+		perror("write error");
+
+	EVP_CIPHER_CTX_cleanup(&ctx);
+	close (infd);
+	fsync (outfd);
 	return 1;
 }
 
 int encrypt (int infd, int outfd) {
 
-	unsigned char outbuf[OP_SIZE];
-	int olen, tlen, n;
-	char inbuff[IP_SIZE];
-	EVP_CIPHER_CTX ctx;
-	EVP_CIPHER_CTX_init (&ctx);
-	EVP_EncryptInit (&ctx, EVP_bf_cbc (), key, iv);
+	unsigned char           *inbuff, *outbuf;
+	int             olen=0, tlen=0, n=0;
+	EVP_CIPHER_CTX  ctx;
+	EVP_CIPHER_CTX_init(&ctx);
+	EVP_DecryptInit(&ctx, EVP_bf_cbc(), key, iv);
 
-	for (;;)
-	{
-		bzero (&inbuff, IP_SIZE);
+	outbuf = (unsigned char *) malloc(sizeof(unsigned char) * OP_SIZE);
+	inbuff = (unsigned char *) malloc(sizeof(unsigned char) * IP_SIZE);
 
-		if ((n = read (infd, inbuff, IP_SIZE)) == -1)
-		{
-			perror ("read error");
+	/* keep reading until a break */
+	for (;;) {
+		memset(inbuff, 0, IP_SIZE);
+		if ((n = read(infd, inbuff, IP_SIZE)) == -1) {
+			perror("read error");
 			break;
-		}
-		else if (n == 0)
+		} else if (n == 0)
 			break;
 
-		if (EVP_EncryptUpdate (&ctx, outbuf, &olen, inbuff, n) != 1)
-		{
-			printf ("error in encrypt update\n");
+		memset(outbuf, 0, OP_SIZE);
+
+		if (EVP_DecryptUpdate(&ctx, outbuf, &olen, inbuff, n) != 1) {
+			printf("error in decrypt update\n");
 			return 0;
 		}
-
-		if (EVP_EncryptFinal (&ctx, outbuf + olen, &tlen) != 1)
-		{
-			printf ("error in encrypt final\n");
-			return 0;
-		}
-		olen += tlen;
-		if ((n = write (outfd, outbuf, olen)) == -1) perror ("write error");
+		if ((n = write(outfd, outbuf, olen)) == -1)
+			perror("write error");
 	}
-	EVP_CIPHER_CTX_cleanup (&ctx);
+
+	tlen=0;
+	EVP_DecryptFinal(&ctx, outbuf + olen, &tlen);
+
+	if ((n = write(outfd, outbuf+olen, tlen)) == -1)
+		perror("write error");
+
+	EVP_CIPHER_CTX_cleanup(&ctx);
 	close (infd);
 	close (outfd);
 	return 1;
@@ -172,7 +175,6 @@ int main (int argc, char *argv[]) {
 
 	if (PQstatus(conn) == CONNECTION_BAD)
 	{
-		//fprintf(stderr, "Connection to database '%s' failed.\n", dbName);
 		fprintf(stderr, "%s", PQerrorMessage(conn));
 		exit_nicely(conn);
 	}
@@ -185,22 +187,37 @@ int main (int argc, char *argv[]) {
 
 	char * arr  = (char *) _mm_malloc(nFields * sizeof(char), 64);
 
+	int r  = PQntuples(res);
+
 	if(intP == 0){
 
-		cilk_for (i = 0; i < PQntuples(res); i++){
+		cilk_for (i = 0; i < r; i++){
 			arr =PQgetvalue(res, i, 1);
 			printf("Starting encryption: %d\n", i);
-			encFile(arr, key, iv);
+			cilk_spawn encFile(arr);
 		}
+
 	}else{
 
-		for (i = 0; i < PQntuples(res); i++){
+		for (i = 0; i < r; i++){
 			arr =PQgetvalue(res, i, 1);
 			printf("Starting encryption: %d\n", i);
 			encFile(arr, key, iv);
 		}
 
 	}
+
+	//	char encExt[] = ".enc";
+	//	char encFilename[200];
+	//	for (i = 0; i < PQntuples(res); i++){
+	//		arr =PQgetvalue(res, i, 1);
+	//
+	//		snprintf(encFilename, 200, "%s%s", arr, encExt);
+	//		printf("Starting decryption: %d %s\n", i, encFilename);
+	//		decFile(encFilename, key, iv);
+	//	}
+
+
 
 
 	PQclear(res);
@@ -212,6 +229,7 @@ int main (int argc, char *argv[]) {
 	printf("CLOCK() Start time: %.5f\n",(double) start);
 	printf("CLOCK() End time: %.5Lf\n", (long double) end);
 	printf("CLOCK() Total Time  %.5Lf\n", (total_time));
+
 
 	gettimeofday(&tv2, NULL);
 
@@ -235,14 +253,17 @@ int main (int argc, char *argv[]) {
 	return 0;
 }
 
-int encFile(const char *filename, unsigned char *key[16], unsigned char *iv[8]){
+int encFile(const char *filename){
 	int flags1 = 0, flags2 = 0, infd, outfd, decfd;
 	mode_t mode;
 	char choice, temp;
 	int done = 0, n, olen;
 
-	bzero (&key, 16);
-	bzero (&iv, 8);
+	bzero(&infd, sizeof(int));
+	bzero(&outfd, sizeof(int));
+
+	//	bzero (&key, 16);
+	//	bzero (&iv, 8);
 	bzero (&mode, sizeof (mode));
 
 	flags1 = flags1 | O_RDONLY;
@@ -262,6 +283,8 @@ int encFile(const char *filename, unsigned char *key[16], unsigned char *iv[8]){
 	if ((infd = open (filename, flags1, mode)) == -1) printf("IO Error: %s\n", filename);
 	if ((outfd = open (encFilename, flags2, mode)) == -1) perror ("open output file error");
 
+	printf("infd: %d\n", infd);
+
 	if(intP == 0) cilk_spawn encrypt (infd, outfd);
 	else encrypt (infd, outfd);
 
@@ -269,6 +292,44 @@ int encFile(const char *filename, unsigned char *key[16], unsigned char *iv[8]){
 	return 0;
 }
 
+int decFile(const char *filename, unsigned char *key[16], unsigned char *iv[8]){
+	int flags1 = 0, flags2 = 0, infd, outfd, decfd;
+	mode_t mode;
+	char choice, temp;
+	int done = 0, n, olen;
+
+	bzero(&infd, sizeof(int));
+	bzero(&outfd, sizeof(int));
+
+	//	bzero (&key, 16);
+	//	bzero (&iv, 8);
+	bzero (&mode, sizeof (mode));
+
+	flags1 = flags1 | O_RDONLY;
+	flags2 = flags2 | O_RDONLY;
+	flags2 = flags2 | O_WRONLY;
+	flags2 = flags2 | O_CREAT;
+
+	mode = mode | S_IRUSR;
+	mode = mode | S_IWUSR;
+
+	char encExt[] = ".iso";
+	char encFilename[200];
+
+	snprintf(encFilename, 200, "%s%s", filename, encExt);
+
+	if( remove(encFilename) != 0 ) perror( "Error deleting file" );
+	if ((infd = open (filename, flags1, mode)) == -1) printf("IO Error: %s\n", filename);
+	if ((outfd = open (encFilename, flags2, mode)) == -1) perror ("open output file error");
+
+	printf("infd: %d\n", infd);
+
+	if(intP == 0) cilk_spawn decrypt(infd, outfd);
+	else decrypt(infd, outfd);
+
+
+	return 0;
+}
 
 
 
